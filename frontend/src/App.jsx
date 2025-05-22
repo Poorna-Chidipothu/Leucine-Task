@@ -4,8 +4,12 @@ import './index.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Pencil, Trash } from 'lucide-react';
+import api from './api';
 
 function App() {
+
+
+
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState('');
   const [summary, setSummary] = useState('');
@@ -13,7 +17,7 @@ function App() {
 
   const fetchTodos = async () => {
     try {
-      const res = await axios.get('/api/todos');
+      const res = await api.get('/todos');
       setTodos(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -27,10 +31,10 @@ function App() {
     }
     try {
       if (editId) {
-        await axios.put(`/api/todos/${editId}`, { text });
+        await api.put(`/todos/${editId}`, { text });
         toast.success("Todo updated successfully!");
       } else {
-        await axios.post('/api/todos', { text });
+        await axios.post('/todos', { text });
         toast.success("Todo added successfully!");
       }
       setText('');
@@ -43,7 +47,7 @@ function App() {
 
   const deleteTodo = async (id) => {
     try {
-      await axios.delete(`/api/todos/${id}`);
+      await api.delete(`/todos/${id}`);
       toast.success("Todo deleted successfully!");
       fetchTodos();
     } catch {
@@ -53,7 +57,7 @@ function App() {
 
   const summarize = async () => {
     try {
-      const res = await axios.post('/api/summarize');
+      const res = await api.post('/summarize');
       setSummary(res.data.summary);
       toast.success("Summary sent to Slack!");
     } catch (e) {
@@ -68,9 +72,9 @@ function App() {
 
   const toggleComplete = async (todo) => {
     try {
-      await axios.put(`/api/todos/${todo.id}`, {
+      api.put(`/todos/${todo.id}`, {
         ...todo,
-        completed: !todo.completed
+        completed: !todo.completed,
       });
       fetchTodos();
     } catch {
@@ -123,13 +127,13 @@ function App() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                   {!todo.completed && (
-                  <button
-                    onClick={() => startEdit(todo)}
-                    className="p-2 text-blue-700 bg-blue-100 border border-blue-500 rounded-full hover:bg-blue-200 cursor-pointer"
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  {!todo.completed && (
+                    <button
+                      onClick={() => startEdit(todo)}
+                      className="p-2 text-blue-700 bg-blue-100 border border-blue-500 rounded-full hover:bg-blue-200 cursor-pointer"
+                    >
+                      <Pencil size={16} />
+                    </button>
                   )}
                   {todo.completed && (
                     <button

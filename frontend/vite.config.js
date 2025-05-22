@@ -7,10 +7,5 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-  ],
-  server: {
-    proxy: {
-      '/api': 'https://leucine-task.onrender.com'
-    }
-  }
+  ]
 })
