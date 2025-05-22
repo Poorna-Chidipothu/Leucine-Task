@@ -34,7 +34,7 @@ function App() {
         await api.put(`/todos/${editId}`, { text });
         toast.success("Todo updated successfully!");
       } else {
-        await axios.post('/todos', { text });
+        await api.post('/todos', { text });
         toast.success("Todo added successfully!");
       }
       setText('');
@@ -72,12 +72,13 @@ function App() {
 
   const toggleComplete = async (todo) => {
     try {
-      api.put(`/todos/${todo.id}`, {
+      await api.put(`/todos/${todo.id}`, {
         ...todo,
         completed: !todo.completed,
       });
       fetchTodos();
     } catch {
+      console.error(err);
       toast.error("Failed to toggle completion.");
     }
   };
