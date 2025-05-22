@@ -8,16 +8,12 @@ import { Pencil, Trash } from 'lucide-react';
 function App() {
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [dueDate, setDueDate] = useState('');
   const [summary, setSummary] = useState('');
-  const [message, setMessage] = useState(null);
   const [editId, setEditId] = useState(null);
 
   const fetchTodos = async () => {
     try {
       const res = await axios.get('/api/todos');
-      // console.log("API response:", res.data);
       setTodos(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -25,18 +21,19 @@ function App() {
   };
 
   const addTodo = async () => {
-    if (!text) return;
+    if (!text) {
+      toast.error("Task description is required.");
+      return;
+    }
     try {
       if (editId) {
-        await axios.put(`/api/todos/${editId}`, { text, priority, dueDate });
+        await axios.put(`/api/todos/${editId}`, { text });
         toast.success("Todo updated successfully!");
       } else {
-        await axios.post('/api/todos', { text, priority, dueDate });
+        await axios.post('/api/todos', { text });
         toast.success("Todo added successfully!");
       }
       setText('');
-      setPriority('Medium');
-      setDueDate('');
       setEditId(null);
       fetchTodos();
     } catch {
@@ -66,8 +63,6 @@ function App() {
 
   const startEdit = (todo) => {
     setText(todo.text);
-    setPriority(todo.priority);
-    setDueDate(todo.due_date);
     setEditId(todo.id);
   };
 
@@ -90,59 +85,60 @@ function App() {
   return (
     <div className="App min-h-screen w-full bg-orange-50 p-6 flex justify-center items-start">
       <ToastContainer />
-      <div className="min-w-[450px] bg-white p-6 shadow-2xl flex flex-col rounded-xl mt-20">
-        <h1 className="text-3xl font-bold text-orange-600 mb-4">Todo Summary Assistant</h1>
+      <div className=" lg:w-[50%] md:w-[75%] sm:w-[90%] bg-white p-6 shadow-2xl flex flex-col rounded-xl mt-20">
+        <h1 className="text-3xl font-extrabold text-orange-600 mb-4 text-center">Todo Summary Assistant</h1>
 
-        <div className="bg-white p-4 rounded shadow mb-4 flex flex-wrap gap-3">
-          <input
-            type="text"
-            placeholder="Task description"
-            value={text}
-            onChange={e => setText(e.target.value)}
-            className="border p-2 rounded w-full"
-          />
-          <div className="flex w-full gap-2">
-            <select
-              value={priority}
-              onChange={e => setPriority(e.target.value)}
-              className="border p-2 rounded w-1/3"
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
+        <div className="border-2 border-orange-600 bg-white rounded-xl shadow mb-10">
+          <div className="relative">
             <input
-              type="date"
-              value={dueDate}
-              onChange={e => setDueDate(e.target.value)}
-              className="border p-2 rounded w-1/3"
+              type="text"
+              placeholder="Task description"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              className=" px-4 py-4 pr-50 rounded w-full focus:outline-none focus:border-orange-400"
             />
             <button
               onClick={addTodo}
-              className="bg-orange-500 text-white px-4 py-2 rounded w-1/3 cursor-pointer"
+              className="absolute top-1/2 right-2 -translate-y-1/2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-2 rounded shadow-md transition cursor-pointer"
             >
               {editId ? 'Update' : 'Add'}
             </button>
           </div>
         </div>
 
+
         <ul className="mb-4">
           {todos.map(todo => (
-            <li key={todo.id} className="bg-white border px-5 py-3 mb-2 rounded-full shadow">
-              <div className="flex justify-between">
-                <div className='pl-4 flex items-center'>
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    onChange={() => toggleComplete(todo)}
-                    className="mr-2"
-                  />
-                  <p className="font-semibold">{todo.text}</p>
-                  <p className="text-sm text-gray-500">Priority: {todo.priority} | Due: {todo.due_date}</p>
+            <li key={todo.id} className="w-full bg-white border px-5 py-3 mb-3 rounded-lg shadow-sm">
+              <div className="flex justify-between items-center">
+                <div className='flex flex-col md:flex-row md:items-center gap-1'>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={todo.completed}
+                      onChange={() => toggleComplete(todo)}
+                      className="custom-checkbox"
+                    />
+                    <p className={`font-semibold ${todo.completed ? 'line-through text-gray-400' : ''}`}>{todo.text}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => startEdit(todo)} className="p-3 text-blue-700 bg-blue-100 border-2 border-blue-500 rounded-full cursor-pointer"><Pencil /></button>
-                  <button onClick={() => deleteTodo(todo.id)} className="p-3 text-red-500 bg-red-100 border-2 border-red-500 rounded-full cursor-pointer"><Trash /></button>
+                   {!todo.completed && (
+                  <button
+                    onClick={() => startEdit(todo)}
+                    className="p-2 text-blue-700 bg-blue-100 border border-blue-500 rounded-full hover:bg-blue-200 cursor-pointer"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  )}
+                  {todo.completed && (
+                    <button
+                      onClick={() => deleteTodo(todo.id)}
+                      className="p-2 text-red-500 bg-red-100 border border-red-500 rounded-full hover:bg-red-200 cursor-pointer"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </li>
@@ -151,15 +147,15 @@ function App() {
 
         <button
           onClick={summarize}
-          className="bg-orange-600 text-white px-4 py-2 rounded cursor-pointer"
+          className="bg-orange-500 hover:bg-orange-600 text-white text-2xl px-4 py-3 rounded-xl w-full text-center cursor-pointer"
         >
           Summarize & Send to Slack
         </button>
 
         {summary && (
-          <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mt-4 rounded-md">
-            <p className="font-semibold">Summary:</p>
-            <p>{summary}</p>
+          <div className="bg-orange-100 border-l-4 border-orange-500  p-4 mt-4 rounded-md">
+            <p className="font-semibold text-2xl text-orange-700">Summary:</p>
+            <p className='text-xl text-gray-950'>{summary}</p>
           </div>
         )}
       </div>

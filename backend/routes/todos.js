@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import supabase from '../services/supabaseClient.js';
+
 const router = express.Router();
-const supabase = require('../services/supabaseClient');
-const { v4: uuidv4 } = require('uuid');
 
 router.get('/', async (req, res) => {
   try {
@@ -11,8 +12,6 @@ router.get('/', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-
-    // console.log("Sending todos to frontend:", data); 
     res.json(data);
   } catch (err) {
     console.error("Error fetching todos:", err.message);
@@ -20,23 +19,17 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-
 router.post('/', async (req, res) => {
   try {
-    const { text, priority, dueDate } = req.body;
+    const { text } = req.body;
 
-    if (!text || !priority) {
-      return res.status(400).json({ error: 'Text and priority are required.' });
+    if (!text) {
+      return res.status(400).json({ error: 'Todo is required.' });
     }
-
-    const due = dueDate && dueDate.trim() !== '' ? dueDate : null;
 
     const newTodo = {
       id: uuidv4(),
       text,
-      priority,
-      ...(due ? { due_date: due } : {})
     };
 
     const { data, error } = await supabase.from('todos').insert([newTodo]).select();
@@ -52,18 +45,15 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { text, priority, dueDate, completed } = req.body;
+    const { text, completed } = req.body;
 
-    if (!text || !priority) {
-      return res.status(400).json({ error: 'Text and priority are required.' });
+    if (!text) {
+      return res.status(400).json({ error: 'Todo is required.' });
     }
 
-    const due = dueDate && dueDate.trim() !== '' ? dueDate : null;
 
     const updatedTodo = {
       text,
-      priority,
-      ...(due ? { due_date: due } : { due_date: null }),
       ...(typeof completed === 'boolean' ? { completed } : {})
     };
 
@@ -74,7 +64,6 @@ router.put('/:id', async (req, res) => {
       .select();
 
     if (error) throw error;
-
     res.json(data[0]);
   } catch (error) {
     console.error("Error updating todo:", error.message);
@@ -82,20 +71,35 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { error } = await supabase.from('todos').delete().eq('id', id);
+
+    const { data: todo, error: fetchError } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (!todo?.completed) {
+      return res.status(400).json({ error: 'Only completed todos can be deleted.' });
+    }
+
+    const { error } = await supabase
+      .from('todos')
+      .delete()
+      .eq('id', id);
 
     if (error) throw error;
 
-    res.json({ success: true });
+    res.json({ message: 'Todo deleted successfully' });
   } catch (err) {
-    console.error('Error deleting todo:', err.message);
+    console.error("Error deleting todo:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 
-module.exports = router;
+export default router;

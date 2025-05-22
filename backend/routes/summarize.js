@@ -1,39 +1,43 @@
-const express = require('express');
-const router = express.Router();
-const supabase = require('../services/supabaseClient');
-const axios = require('axios');
-const { GoogleGenAI } = require('@google/genai');
+import express from 'express';
+import { CohereClient } from 'cohere-ai';
+import supabase from '../services/supabaseClient.js';
+import axios from 'axios';
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+const router = express.Router();
+
+const cohere = new CohereClient({
+  token: process.env.COHERE_API_KEY,
+});
 
 router.post('/', async (req, res) => {
   try {
-    // Fetch todos from Supabase
-    const { data: todos, error } = await supabase.from('todos').select('*');
-    if (error) throw new Error('Error fetching todos: ' + error.message);
+    const { data: todos, error } = await supabase
+  .from('todos')
+  .select('*')
+  .eq('completed', false);
 
-    const text = todos.map(t => `- ${t.text} (Priority: ${t.priority || 'N/A'}, Due: ${t.due_date || 'N/A'})`).join('\n');
+if (error) throw new Error('Error fetching todos: ' + error.message);
 
-    // Generate summary using Gemini
-    const response = await genAI.models.generateContent({
-      model: 'gemini-1.5-pro-latest',
-      contents: [{ role: 'user', parts: `Summarize these todos:\n${text}` }],
+const text = todos
+  .map(t => `- ${t.text}`)
+  .join('\n');
+
+const response = await cohere.chat({
+  model: 'command-r',
+  message: `Please review the following list of pending todos and provide a concise, well-structured summary in a single paragraph. Do not use bullet points. Organize the summary by priority, emphasizing the most urgent tasks first, but keep the flow natural and easy to read:\n${text}`
+});
+
+const summary = response.text || 'No summary generated.';
+    // Send to Slack
+    await axios.post(process.env.SLACK_WEBHOOK_URL, {
+      text: `📜 Todo Summary:\n${summary}`,
     });
-
-    const summary = response.candidates[0].content.parts[0].text;
-
-    // Post summary to Slack
-    const slackRes = await axios.post(process.env.SLACK_WEBHOOK_URL, {
-      text: `📝 Todo Summary:\n${summary}`,
-    });
-    if (slackRes.status !== 200) throw new Error('Failed to post to Slack');
 
     res.json({ summary });
-
   } catch (error) {
-    console.error("Summarize error details:", error);
+    console.error('Summarize error:', error);
     res.status(500).json({ error: error.message || 'Something went wrong' });
   }
 });
 
-module.exports = router;
+export default router;
