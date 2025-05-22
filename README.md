@@ -6,10 +6,6 @@ A full-stack AI-enhanced todo management app. Add, edit, and complete tasks — 
 
 🔗 [https://leucine-task.vercel.app/](https://leucine-task.vercel.app/)
 
-## 🎥 YouTube Explanation Video
-
-📺 [Watch on YouTube]()
-
 ---
 
 ## 📂 Project Structure
